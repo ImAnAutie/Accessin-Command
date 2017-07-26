@@ -17,19 +17,76 @@ $app->get('/mobile/doors', function (Request $request, Response $response) {
 	echo json_encode($data);
 });
 
-$app->get('/people/{id}', function (Request $request, Response $response,$args) {
-	$me=DB::queryFirstRow("SELECT * FROM people WHERE id=%i",$args['id']);
-	if (!$me) {
-		$data['status']="false";
-		$data['reason']="Invalid person id";
-	} else {
-		$data['status']="true";
-		$data['name']=$me['name'];
-		$data['status']=DB::queryFirstField("SELECT name FROM status WHERE id=%i",$me['status']);
-		$myrights=DB::queryFirstRow("SELECT * FROM peoplerights WHERE person=%i",$args['id']);
-		$data['myrights']=$myrights;
+
+$app->get('/', function (Request $request, Response $response, $args) {
+	global $smarty;
+	if (!$_SESSION['accessin']['person']) {
+		header("Location: /signin");
+		die();
 	};
-	echo json_encode($data);
+
+	$organisation=DB::queryFirstRow("SELECT * FROM saasorganisations WHERE id=%i",$_SESSION['accessin']['organisation']);
+	$smarty->assign('session',$_SESSION['accessin']);
+	$smarty->assign('organisation',$organisation);
+	$smarty->display('index.tpl');
+});
+
+$app->get('/signin[/{organisation}]', function (Request $request, Response $response, $args) {
+	global $smarty;
+
+	if ($_SESSION['accessin']['person']) {
+		header("Location: /");
+		die();
+	};
+
+	if ($args['organisation']) {
+		$organisation=DB::queryFirstRow("SELECT * FROM saasorganisations WHERE organisation=%s",$args['organisation']);
+		if (!$organisation) {
+			$smarty->display('invalid_organisation.tpl');
+			die();
+		} else {
+			$smarty->assign('organisation',$organisation);
+		};
+	};
+	$smarty->display('signin.tpl');
+});
+
+$app->post('/signin', function (Request $request, Response $response, $args) {
+	global $smarty;
+
+	if ($_SESSION['accessin']['person']) {
+		header("Location: /");
+		die();
+	};
+
+	$organisation=DB::queryFirstRow("SELECT * FROM saasorganisations WHERE organisation=%s",$_POST['organisation']);
+	if (!$organisation) {
+		$smarty->display('invalid_organisation.tpl');
+		die();
+	} else {
+		$person=DB::queryFirstRow("SELECT * FROM people WHERE organisation=%i",$organisation['id']);
+		if (!$person) {
+			$smarty->display('signin_invalid.tpl');
+			die();
+		} else {
+			if (password_verify($_POST['password'], $person['password'])) {
+				unset($person['password']);
+				unset($_SESSION['accessin']);
+				$_SESSION['accessin']['person']=$person;
+				$_SESSION['accessin']['organisation']=$organisation['id'];
+				echo "OK";
+			} else {
+				$smarty->display('signin_invalid.tpl');
+				die();
+			};
+		};
+	};
+});
+
+$app->get('/signout', function (Request $request, Response $response, $args) {
+	unset($_SESSION['accessin']);
+	header("Location: /");
+	die();
 });
 
 $app->run();

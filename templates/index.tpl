@@ -1,3 +1,5 @@
+{config_load file='smarty.conf'}
+
 <!DOCTYPE html>
 <!--
 This is a starter template page. Use this page to start your new project from
@@ -7,7 +9,7 @@ scratch. This page gets rid of all links and provides the needed markup only.
 <head>
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <title>AdminLTE 2 | Home</title>
+  <title>{#appnamefull#} | Dashboard</title>
   <!-- Tell the browser to be responsive to screen width -->
   <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
   <link rel="stylesheet" href="/css/bootstrap.min.css">
@@ -62,9 +64,9 @@ desired effect
     <!-- Logo -->
     <a href="index2.html" class="logo">
       <!-- mini logo for sidebar mini 50x50 pixels -->
-      <span class="logo-mini"><b>A</b>LT</span>
+      <span class="logo-mini"><b>{#appnameshortfirst#}</b>{#appnameshortlast#}</span>
       <!-- logo for regular state and mobile devices -->
-      <span class="logo-lg"><b>Admin</b>LTE</span>
+      <span class="logo-lg"><b>{#appnamelongfirst#}</b>{#appnamelonglast#}</span>
     </a>
 
     <!-- Header Navbar -->
@@ -179,7 +181,7 @@ desired effect
               <!-- The user image in the navbar-->
               <img src="/img/user2-160x160.jpg" class="user-image" alt="User Image">
               <!-- hidden-xs hides the username on small devices so only the image appears. -->
-              <span class="hidden-xs">Alexander Pierce</span>
+              <span class="hidden-xs">{$session.person.name}</span>
             </a>
             <ul class="dropdown-menu">
               <!-- The user image in the menu -->
@@ -187,7 +189,7 @@ desired effect
                 <img src="/img/user2-160x160.jpg" class="/img-circle" alt="User Image">
 
                 <p>
-                  Alexander Pierce - Web Developer
+                  {$session.person.name} - {$organisation.name}
                   <small>Member since Nov. 2012</small>
                 </p>
               </li>
@@ -212,7 +214,7 @@ desired effect
                   <a href="#" class="btn btn-default btn-flat">Profile</a>
                 </div>
                 <div class="pull-right">
-                  <a href="#" class="btn btn-default btn-flat">Sign out</a>
+                  <a href="/signout" class="btn btn-danger btn-flat">Sign out</a>
                 </div>
               </li>
             </ul>
@@ -237,7 +239,7 @@ desired effect
           <img src="/img/user2-160x160.jpg" class="/img-circle" alt="User Image">
         </div>
         <div class="pull-left info">
-          <p>Alexander Pierce</p>
+          <p>{$session.person.name}</p>
           <!-- Status -->
           <a href="#"><i class="fa fa-circle text-success"></i> Online</a>
         </div>
