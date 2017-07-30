@@ -1,2 +1,4 @@
 config.php
 templates_c
+.htjwtprivate.pem
+jwtpublic.pem
