@@ -95,7 +95,7 @@ $app->get('/signout/', function (Request $request, Response $response, $args) {
 
 //mobile api
 $app->post('/mobileapi/signin/', function (Request $request, Response $response, $args) {
-	global $smarty, $jwt_private_key;
+	global $jwt_private_key;
 
 	$organisation=DB::queryFirstRow("SELECT * FROM saasorganisations WHERE organisation=%s",$_POST['organisation']);
 	if (!$organisation) {
@@ -181,6 +181,104 @@ $app->post('/mobileapi/signin/', function (Request $request, Response $response,
 	};
 });
 
+$app->get('/mobileapi/refreshtoken/', function (Request $request, Response $response) {
+	global $jwt_public_key, $jwt_private_key;
+
+	$authheader=getallheaders()['authorization'];
+	$refreshtoken=explode(' ', $authheader, 2)[1];
+
+	$decodedrefreshtoken = (array) JWT::decode($refreshtoken, $jwt_public_key, array('RS256'));
+
+	$data['status']=true;
+
+	if ($decodedrefreshtoken['iss']!="accessin.okonetwork.org.uk"||$decodedrefreshtoken['aud']!="AccessinCommandMobile") {
+		$data['status']=false;
+		$data['reason']="INVALID_JWT";
+	} else {
+		$token=DB::queryFirstRow("SELECT * FROM tokens WHERE id=%i",$decodedrefreshtoken['jti']);
+		if (!$token) {
+			$data['status']=false;
+			$data['reason']="INVALID_JWT";
+		} else {
+			if ($token['blocked']) {
+				$data['status']=false;
+				$data['reason']="BLOCKED_JWT";
+			} else {
+				$mobile=DB::queryFirstRow("SELECT * FROM mobiledevices WHERE id=%i",$token['connectingobjectid']);
+				if (!$mobile) {
+					$data['status']=false;
+					$data['reason']="BLOCKED_DEVICE";
+				} else {
+					if ($mobile['refreshtokenid']!=$token['id']) {
+						$data['status']=false;
+						$data['reason']="INVALID_JWT";
+					} else {
+						//block old jwt
+						DB::update('tokens', array( 'blocked' => '1' ), "id=%i", $token['id']);
+						DB::update('tokens', array( 'blocked' => '1' ), "id=%i", $token['refreshfor']);
+						DB::update('mobiledevices', array( 'refreshtokenid' => '0','accesstokenid' => '0' ), "id=%i", $mobile['id']);
+
+						//issue new jwt.
+
+						$mobileid=$mobile['id'];
+						$organisation=$token['organisation'];
+
+						$issuedat=time();
+						//api 1 is Mobile
+						//create accesstoken
+						DB::insert('tokens', array(
+							'api' => '1',
+							'connectingobjectid' => $mobileid,
+							'refreshtoken' => false,
+							'issuedat' => $issuedat,
+							'organisation' => $organisation['id']
+						));
+						$accesstokenid=DB::insertId();
+
+						//create refreshtoken
+						DB::insert('tokens', array(
+							'api' => '1',
+							'connectingobjectid' => $mobileid,
+							'refreshtoken' => true,
+							'refreshfor' => $accesstokenid,
+							'issuedat' => $issuedat,
+							'organisation' => $organisation['id']
+						));
+						$refreshtokenid=DB::insertId();
+
+						DB::update('mobiledevices', array(
+							refreshtokenid => $refreshtokenid,
+							accesstokenid => $accesstokenid
+						), "id=%i", $mobileid);
+
+						//expiry is in 6 hours, if this is expired both door and API access cannot occur.
+						$accesstoken = array(
+							"iss" => "accessin.okonetwork.org.uk",
+							"aud" => "AccessinCommandMobile",
+							"jti" => $accesstokenid,
+							"iat" => $issuedat,
+							"exp" => $issuedat+21600
+						);
+						$result['accesstoken'] = JWT::encode($accesstoken, $jwt_private_key, 'RS256');
+
+						//expires in 14 days. If this expires the mobile app will be forced to sign in again.
+						$refreshtoken = array(
+							"iss" => "accessin.okonetwork.org.uk",
+							"aud" => "AccessinCommandMobile",
+							"jti" => $refreshtokenid,
+							"iat" => $issuedat,
+							"exp" => $issuedat+1209600
+						);
+						$result['refreshtoken'] = JWT::encode($refreshtoken, $jwt_private_key, 'RS256');
+						$result['status']=true;
+					};
+				};
+			};
+		};
+	};
+
+	echo json_encode($data);
+});
 
 
 
