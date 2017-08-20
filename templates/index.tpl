@@ -3,23 +3,20 @@
 {include file='head.tpl'}
 <title>{#appnamefull#} | Dashboard</title>
 
-<body class="hold-transition skin-blue sidebar-mini">
-<div class="wrapper">
+{include file='body_start.tpl'}
 
   {include file='header.tpl'}
   {include file='left_sidebar.tpl'}
 
-  <!-- Content Wrapper. Contains page content -->
   <div class="content-wrapper">
-    <!-- Content Header (Page header) -->
     <section class="content-header">
       <h1>
-        Page Header
-        <small>Optional description</small>
+        Dashboard
+        <small>Setup and operate your Access Control system</small>
       </h1>
       <ol class="breadcrumb">
-        <li><a href="#"><i class="fa fa-dashboard"></i> Dashboard</a></li>
-<!--        <li class="active">Here</li> -->
+        <li><a href="/"><i class="fa fa-dashboard"></i> Dashboard</a></li>
+<!--        <li><a href="/"><i class="fa fa-dashboard"></i> Dashboard</a></li> -->
       </ol>
     </section>
 
@@ -39,4 +36,5 @@
 </div>
 <!-- ./wrapper -->
 
+{include file='pre_body_end.tpl'}
 {include file='body_end.tpl'}

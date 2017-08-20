@@ -31,6 +31,8 @@
         <li class="header">Menu</li>
         <!-- Optionally, you can add icons to the links -->
         <li class="active"><a href="/"><i class="fa fa-dashboard"></i> <span>Dashboard</span></a></li>
+        <li class="active"><a href="/buildings"><i class="fa fa-building"></i> <span>Buildings</span></a></li>
+        <li class="active"><a href="/doors"><i class="fa fa-sign-in"></i> <span>Doors</span></a></li>
         <li class="active"><a href="/controllers"><i class="fa fa-server"></i> <span>Controllers</span></a></li>
         <li class="active"><a href="/people"><i class="fa fa-user"></i> <span>People</span></a></li>
         <li class="active"><a href="/mobiles"><i class="fa fa-mobile"></i> <span>Mobiles</span></a></li>

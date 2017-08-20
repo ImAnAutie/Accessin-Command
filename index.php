@@ -31,6 +31,23 @@ $app->get('/', function (Request $request, Response $response, $args) {
 	$smarty->display('index.tpl');
 });
 
+$app->get('/buildings/', function (Request $request, Response $response, $args) {
+	global $smarty;
+	if (!$_SESSION['accessin']['person']) {
+		header("Location: /signin");
+		die();
+	};
+
+	$organisation=DB::queryFirstRow("SELECT * FROM saasorganisations WHERE id=%i",$_SESSION['accessin']['organisation']);
+	$smarty->assign('session',$_SESSION['accessin']);
+	$smarty->assign('organisation',$organisation);
+
+	$buildings=DB::query("SELECT * FROM buildings WHERE organisation=%i",$_SESSION['accessin']['organisation']);
+	$smarty->assign('buildings',$buildings);
+
+	$smarty->display('buildings.tpl');
+});
+
 $app->get('/signin/[{organisation}/]', function (Request $request, Response $response, $args) {
 	global $smarty;
 

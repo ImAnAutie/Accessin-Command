@@ -72,7 +72,6 @@
 
     <a href="/forgotpassword">I forgot my password</a><br>
     <a href="/signup/{$organisation.organisation}" class="text-center">Register a new {if $organisation} {$organisation.name} {/if}account</a><br />
-    <a href="/signuporganisation" class="text-center">Signup a new organisation to {#appfullname#}</a><br />
 
   </div>
   <!-- /.login-box-body -->
