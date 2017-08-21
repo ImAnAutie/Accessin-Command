@@ -24,6 +24,7 @@ class ComposerStaticInit7cd9173115fb20a5b4c42cbf90bee488
         ),
         'I' => 
         array (
+            'Iso3166\\' => 8,
             'Interop\\Container\\' => 18,
         ),
         'F' => 
@@ -49,6 +50,10 @@ class ComposerStaticInit7cd9173115fb20a5b4c42cbf90bee488
         'Psr7Middlewares\\' => 
         array (
             0 => __DIR__ . '/..' . '/oscarotero/psr7-middlewares/src',
+        ),
+        'Iso3166\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/julien-c/iso3166/src',
         ),
         'Interop\\Container\\' => 
         array (

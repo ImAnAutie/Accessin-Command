@@ -4,8 +4,8 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
         "This file is @generated automatically"
     ],
-    "hash": "da5d5471306cce4af5c4391e97c28865",
-    "content-hash": "99dd3044d9e488c8ce3313708147db57",
+    "hash": "24455548eed23af266cf570222294a4b",
+    "content-hash": "861800afa73a801813ea1e5d41a2940e",
     "packages": [
         {
             "name": "container-interop/container-interop",
@@ -83,6 +83,39 @@
             "description": "A simple library to encode and decode JSON Web Tokens (JWT) in PHP. Should conform to the current spec.",
             "homepage": "https://github.com/firebase/php-jwt",
             "time": "2017-06-27 22:17:23"
+        },
+        {
+            "name": "julien-c/iso3166",
+            "version": "2.0.1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/julien-c/iso3166.git",
+                "reference": "d7bd56333a1ed901fbc41d5a5c92d88a2a6cb88c"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/julien-c/iso3166/zipball/d7bd56333a1ed901fbc41d5a5c92d88a2a6cb88c",
+                "reference": "d7bd56333a1ed901fbc41d5a5c92d88a2a6cb88c",
+                "shasum": ""
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Iso3166\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Julien Chaumond",
+                    "email": "chaumond@gmail.com"
+                }
+            ],
+            "description": "ISO 3166-1 alpha-2 mapping",
+            "time": "2015-12-15 15:40:03"
         },
         {
             "name": "nikic/fast-route",

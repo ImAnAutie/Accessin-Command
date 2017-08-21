@@ -1,6 +1,7 @@
 <?php
 session_start();
 
+
 use \Psr\Http\Message\ServerRequestInterface as Request;
 use \Psr\Http\Message\ResponseInterface as Response;
 //so we can do json web tokens
@@ -8,6 +9,9 @@ use \Firebase\JWT\JWT;
 
 require_once 'vendor/autoload.php';
 require_once 'config.php';
+
+//anti csrf (https://github.com/BKcore/NoCSRF)
+require_once 'nocsrf.php';
 
 //just a rough get it working thing here. Will actually do it properly in production.
 $app->get('/mobile/doors/', function (Request $request, Response $response) {
@@ -28,10 +32,46 @@ $app->get('/', function (Request $request, Response $response, $args) {
 	$organisation=DB::queryFirstRow("SELECT * FROM saasorganisations WHERE id=%i",$_SESSION['accessin']['organisation']);
 	$smarty->assign('session',$_SESSION['accessin']);
 	$smarty->assign('organisation',$organisation);
+
+	$leftsidebar['dashboard']=true;
+	$smarty->assign('leftsidebar',$leftsidebar);
+
+	$csrftoken = NoCSRF::generate('csrf_token');
+	$smarty->assign('csrftoken',$csrftoken);
+
 	$smarty->display('index.tpl');
 });
 
 $app->get('/buildings/', function (Request $request, Response $response, $args) {
+	global $smarty;
+	if (!$_SESSION['accessin']['person']) {
+		header("Location: /signin");
+		die();
+	};
+	//should also check here if user has permission to add a building
+
+	$organisation=DB::queryFirstRow("SELECT * FROM saasorganisations WHERE id=%i",$_SESSION['accessin']['organisation']);
+	$smarty->assign('session',$_SESSION['accessin']);
+	$smarty->assign('organisation',$organisation);
+
+	$buildings=DB::query("SELECT * FROM buildings WHERE organisation=%i",$_SESSION['accessin']['organisation']);
+
+	foreach ($buildings as &$building) {
+		$building['country_name']=Iso3166\Codes::country($building['country_code']);
+	};
+
+	$smarty->assign('buildings',$buildings);
+
+	$leftsidebar['buildings']=true;
+	$smarty->assign('leftsidebar',$leftsidebar);
+
+	$csrftoken = NoCSRF::generate('csrf_token');
+	$smarty->assign('csrftoken',$csrftoken);
+
+	$smarty->display('buildings.tpl');
+});
+
+$app->get('/buildings/add/', function (Request $request, Response $response, $args) {
 	global $smarty;
 	if (!$_SESSION['accessin']['person']) {
 		header("Location: /signin");
@@ -42,11 +82,138 @@ $app->get('/buildings/', function (Request $request, Response $response, $args) 
 	$smarty->assign('session',$_SESSION['accessin']);
 	$smarty->assign('organisation',$organisation);
 
-	$buildings=DB::query("SELECT * FROM buildings WHERE organisation=%i",$_SESSION['accessin']['organisation']);
-	$smarty->assign('buildings',$buildings);
+	$leftsidebar['buildings']=true;
+	$smarty->assign('leftsidebar',$leftsidebar);
 
-	$smarty->display('buildings.tpl');
+	$csrftoken = NoCSRF::generate('csrf_token');
+	$smarty->assign('csrftoken',$csrftoken);
+
+	$smarty->display('buildings_add.tpl');
 });
+
+$app->post('/buildings/add/', function (Request $request, Response $response, $args) {
+	global $smarty;
+
+	if (!$_SESSION['accessin']['person']) {
+		header("Location: /signin");
+		die();
+	};
+	//should also check here if user has permission to add a building
+
+
+	try {
+		NoCSRF::check( 'csrf_token', $_POST, true, 60*10, false );
+		DB::insert('buildings', array(
+			'name' => $_POST['name'],
+			'line1' => $_POST['line1'],
+			'line2' => $_POST['line2'],
+			'city' => $_POST['city'],
+			'postcode' => $_POST['postcode'],
+			'country_code' => $_POST['country_code'],
+			'organisation' => $_SESSION['accessin']['organisation']
+		));
+		header("Location: /buildings");
+		die();
+	} catch ( Exception $e ) {
+		$smarty->display('csrffail.tpl');
+		die();
+	};
+});
+
+$app->post('/buildings/{buildingid}/delete/', function (Request $request, Response $response, $args) {
+	global $smarty;
+
+	if (!$_SESSION['accessin']['person']) {
+		header("Location: /signin");
+		die();
+	};
+	//should also check here if user has permission to delete a building
+	try {
+		NoCSRF::check( 'csrf_token', $_POST, true, 60*10, false );
+
+		$building=DB::queryFirstRow("SELECT * FROM buildings WHERE id=%i AND organisation=%i",$args['buildingid'],$_SESSION['accessin']['organisation']);
+		if (!$building) {
+			$smarty->display('invalid_building.tpl');
+			die();
+		} else {
+			DB::delete('buildings', "id=%i AND organisation=%i", $args['buildingid'],$_SESSION['accessin']['organisation']);
+			header("Location: /buildings");
+			die();
+		};
+	} catch ( Exception $e ) {
+		$smarty->display('csrffail.tpl');
+		die();
+	};
+});
+
+$app->get('/buildings/{buildingid}/edit/', function (Request $request, Response $response, $args) {
+	global $smarty;
+
+	if (!$_SESSION['accessin']['person']) {
+		header("Location: /signin");
+		die();
+	};
+	//should also check here if user has permission to edit a building
+	$building=DB::queryFirstRow("SELECT * FROM buildings WHERE id=%i AND organisation=%i",$args['buildingid'],$_SESSION['accessin']['organisation']);
+	if (!$building) {
+		$smarty->display('invalid_building.tpl');
+		die();
+	} else {
+		$building['country_name']=Iso3166\Codes::country($building['country_code']);
+		$smarty->assign('building',$building);
+
+		$organisation=DB::queryFirstRow("SELECT * FROM saasorganisations WHERE id=%i",$_SESSION['accessin']['organisation']);
+		$smarty->assign('session',$_SESSION['accessin']);
+		$smarty->assign('organisation',$organisation);
+
+		$leftsidebar['buildings']=true;
+		$smarty->assign('leftsidebar',$leftsidebar);
+
+		$csrftoken = NoCSRF::generate('csrf_token');
+		$smarty->assign('csrftoken',$csrftoken);
+
+		$smarty->display('buildings_edit.tpl');
+		die();
+	};
+});
+
+
+
+$app->post('/buildings/{buildingid}/edit/', function (Request $request, Response $response, $args) {
+	global $smarty;
+
+	if (!$_SESSION['accessin']['person']) {
+		header("Location: /signin");
+		die();
+	};
+	//should also check here if user has permission to edit a building
+	$building=DB::queryFirstRow("SELECT * FROM buildings WHERE id=%i AND organisation=%i",$args['buildingid'],$_SESSION['accessin']['organisation']);
+	if (!$building) {
+		$smarty->display('invalid_building.tpl');
+		die();
+	} else {
+		try {
+			NoCSRF::check( 'csrf_token', $_POST, true, 60*10, false );
+			DB::update('buildings', array(
+				'name' => $_POST['name'],
+				'line1' => $_POST['line1'],
+				'line2' => $_POST['line2'],
+				'city' => $_POST['city'],
+				'postcode' => $_POST['postcode'],
+				'country_code' => $_POST['country_code'],
+				'organisation' => $_SESSION['accessin']['organisation']
+			), "id=%i AND organisation=%i", $args['buildingid'],$_SESSION['accessin']['organisation']);
+
+			header("Location: /buildings");
+			die();
+		} catch ( Exception $e ) {
+			$smarty->display('csrffail.tpl');
+			die();
+		};
+	};
+});
+
+
 
 $app->get('/signin/[{organisation}/]', function (Request $request, Response $response, $args) {
 	global $smarty;
@@ -132,7 +299,7 @@ $app->post('/mobileapi/signin/', function (Request $request, Response $response,
 				$result['status']=true;
 
 				DB::insert('mobiledevices', array(
-					'person' => $person['id'],
+	 					'person' => $person['id'],
 					'lastactive' => time(),
 					'organisation' => $organisation['id']
 				));

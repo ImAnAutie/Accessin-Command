@@ -30,13 +30,13 @@
       <ul class="sidebar-menu" data-widget="tree">
         <li class="header">Menu</li>
         <!-- Optionally, you can add icons to the links -->
-        <li class="active"><a href="/"><i class="fa fa-dashboard"></i> <span>Dashboard</span></a></li>
-        <li class="active"><a href="/buildings"><i class="fa fa-building"></i> <span>Buildings</span></a></li>
-        <li class="active"><a href="/doors"><i class="fa fa-sign-in"></i> <span>Doors</span></a></li>
-        <li class="active"><a href="/controllers"><i class="fa fa-server"></i> <span>Controllers</span></a></li>
-        <li class="active"><a href="/people"><i class="fa fa-user"></i> <span>People</span></a></li>
-        <li class="active"><a href="/mobiles"><i class="fa fa-mobile"></i> <span>Mobiles</span></a></li>
-        <li class="active"><a href="/readers"><i class="fa fa-tablet"></i> <span>Readers</span></a></li>
+        <li class="{if $leftsidebar.dashboard}active{/if}"><a href="/"><i class="fa fa-dashboard"></i> <span>Dashboard</span></a></li>
+        <li class="{if $leftsidebar.buildings}active{/if}"><a href="/buildings"><i class="fa fa-building"></i> <span>Buildings</span></a></li>
+        <li class="{if $leftsidebar.doors}active{/if}"><a href="/doors"><i class="fa fa-sign-in"></i> <span>Doors</span></a></li>
+        <li class="{if $leftsidebar.controllers}active{/if}"><a href="/controllers"><i class="fa fa-server"></i> <span>Controllers</span></a></li>
+        <li class="{if $leftsidebar.people}active{/if}"><a href="/people"><i class="fa fa-user"></i> <span>People</span></a></li>
+        <li class="{if $leftsidebar.mobiles}active{/if}"><a href="/mobiles"><i class="fa fa-mobile"></i> <span>Mobiles</span></a></li>
+        <li class="{if $leftsidebar.readers}active{/if}"><a href="/readers"><i class="fa fa-tablet"></i> <span>Readers</span></a></li>
       </ul>
       <!-- /.sidebar-menu -->
     </section>
