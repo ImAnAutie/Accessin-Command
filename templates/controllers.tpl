@@ -38,6 +38,7 @@
                 		<tr>
 		                	<th>Name</th>
 					<th>Building</th>
+					<th>Last active</th>
 					<th>Status</th>
 					<th></th>
 					<th></th>
@@ -47,8 +48,9 @@
 	                <tbody>
 		{foreach from=$controllers item=controller}
         	  		<tr>
-		              		<td>{$controller.name}</td>
+		              		<td><a href="/controllers/{$controller.id}">{$controller.name}</a></td>
 		              		<td><a href="/buildings/{$controller.building}">{$controller.building_name}</a></td>
+					<td>{$controller.lastactive|date_format:"%D %H:%M:%S"}</td>
 		              		<td>{if $controller.setup}{$controller.status}{else}<a href="/controllers/{$controller.id}/setup" class="btn btn-primary"> <i class="fa fa-cog"></i> Setup required</a>{/if}</td>
 					<td><a href="/controllers/{$controller.id}/edit" class="btn btn-primary"> <i class="fa fa-edit"></i> Edit</a></td>
 					<td><button onclick="showcontrollerdelete({$controller.id});" class="btn btn-danger"> <i class="fa fa-trash"></i> Delete</button></td>
@@ -62,6 +64,7 @@
                 <tr>
 		        <th>Name</th>
 			<th>Building</th>
+			<th>Last active</th>
 			<th>Status</th>
 			<th></th>
 			<th></th>

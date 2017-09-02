@@ -6,5 +6,9 @@ $vendorDir = dirname(dirname(__FILE__));
 $baseDir = dirname($vendorDir);
 
 return array(
+    'Requests' => array($vendorDir . '/rmccue/requests/library'),
     'Pimple' => array($vendorDir . '/pimple/pimple/src'),
+    'Guzzle\\Tests' => array($vendorDir . '/guzzle/guzzle/tests'),
+    'Guzzle' => array($vendorDir . '/guzzle/guzzle/src'),
+    'Evenement' => array($vendorDir . '/evenement/evenement/src'),
 );

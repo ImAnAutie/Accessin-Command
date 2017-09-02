@@ -150,7 +150,7 @@
               <!-- Menu Footer-->
               <li class="user-footer">
                 <div class="pull-left">
-                  <a href="#" class="btn btn-default btn-flat">Profile</a>
+                  <a href="/userportal" class="btn btn-default btn-flat">User portal</a>
                 </div>
                 <div class="pull-right">
                   <a href="/signout" class="btn btn-danger btn-flat">Sign out</a>

@@ -5,6 +5,8 @@
         "smarty/smarty": "^3.1",
         "firebase/php-jwt": "^5.0",
         "oscarotero/psr7-middlewares": "^3.20",
-        "julien-c/iso3166": "^2.0"
+        "julien-c/iso3166": "^2.0",
+        "rmccue/requests": "^1.7",
+        "voryx/thruway": "^0.4.2"
     }
 }

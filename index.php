@@ -1,17 +1,18 @@
 <?php
 session_start();
-
-
 use \Psr\Http\Message\ServerRequestInterface as Request;
 use \Psr\Http\Message\ResponseInterface as Response;
 //so we can do json web tokens
 use \Firebase\JWT\JWT;
-
 require_once 'vendor/autoload.php';
 require_once 'config.php';
-
 //anti csrf (https://github.com/BKcore/NoCSRF)
 require_once 'nocsrf.php';
+
+
+
+require_once 'unlockfunctions.php';
+
 
 //just a rough get it working thing here. Will actually do it properly in production.
 $app->get('/mobile/doors/', function (Request $request, Response $response) {
@@ -20,7 +21,6 @@ $app->get('/mobile/doors/', function (Request $request, Response $response) {
 	$data['doors']=$doors;
 	echo json_encode($data);
 });
-
 
 $app->get('/', function (Request $request, Response $response, $args) {
 	global $smarty;
@@ -201,8 +201,7 @@ $app->post('/buildings/{buildingid}/edit/', function (Request $request, Response
 				'line2' => $_POST['line2'],
 				'city' => $_POST['city'],
 				'postcode' => $_POST['postcode'],
-				'country_code' => $_POST['country_code'],
-				'organisation' => $_SESSION['accessin']['organisation']
+				'country_code' => $_POST['country_code']
 			), "id=%i AND organisation=%i", $args['buildingid'],$_SESSION['accessin']['organisation']);
 
 			header("Location: /buildings");
@@ -214,14 +213,7 @@ $app->post('/buildings/{buildingid}/edit/', function (Request $request, Response
 	};
 });
 
-
-// *** DONE
-
-
-
-
-
-
+//***
 
 $app->get('/controllers/', function (Request $request, Response $response, $args) {
 	global $smarty;
@@ -348,6 +340,12 @@ $app->get('/controllers/{controllerid}/edit/', function (Request $request, Respo
 		$controller['country_name']=Iso3166\Codes::country($controller['country_code']);
 		$smarty->assign('controller',$controller);
 
+		$buildings=DB::query("SELECT * FROM buildings WHERE organisation=%i",$_SESSION['accessin']['organisation']);
+		foreach ($buildings as &$building) {
+			$building['country_name']=Iso3166\Codes::country($building['country_code']);
+		};
+		$smarty->assign('buildings',$buildings);
+
 		$organisation=DB::queryFirstRow("SELECT * FROM saasorganisations WHERE id=%i",$_SESSION['accessin']['organisation']);
 		$smarty->assign('session',$_SESSION['accessin']);
 		$smarty->assign('organisation',$organisation);
@@ -380,12 +378,7 @@ $app->post('/controllers/{controllerid}/edit/', function (Request $request, Resp
 			NoCSRF::check( 'csrf_token', $_POST, true, 60*10, false );
 			DB::update('controllers', array(
 				'name' => $_POST['name'],
-				'line1' => $_POST['line1'],
-				'line2' => $_POST['line2'],
-				'city' => $_POST['city'],
-				'postcode' => $_POST['postcode'],
-				'country_code' => $_POST['country_code'],
-				'organisation' => $_SESSION['accessin']['organisation']
+				'building' => $_POST['building']
 			), "id=%i AND organisation=%i", $args['controllerid'],$_SESSION['accessin']['organisation']);
 
 			header("Location: /controllers");
@@ -415,6 +408,8 @@ $app->get('/controllers/{controllerid}/setup/', function (Request $request, Resp
 			$smarty->display('controller_allready_setup.tpl');
 			die();
 		} else {
+			//remove any old tokens for controller
+			DB::delete('tokens', "api=%i AND controller=%i AND organisation=%i", 2,$args['doorid'],$_SESSION['accessin']['organisation']);
 
 			$issuedat=time();
 
@@ -460,6 +455,242 @@ $app->get('/controllers/{controllerid}/setup/', function (Request $request, Resp
 	};
 });
 
+
+
+$app->get('/doors/', function (Request $request, Response $response, $args) {
+	global $smarty;
+	if (!$_SESSION['accessin']['person']) {
+		header("Location: /signin");
+		die();
+	};
+	//should also check here if user has permission to add a door
+
+	$organisation=DB::queryFirstRow("SELECT * FROM saasorganisations WHERE id=%i",$_SESSION['accessin']['organisation']);
+	$smarty->assign('session',$_SESSION['accessin']);
+	$smarty->assign('organisation',$organisation);
+
+	$doors=DB::query("SELECT * FROM doors WHERE organisation=%i",$_SESSION['accessin']['organisation']);
+	foreach ($doors as &$door) {
+		$controller=DB::queryFirstRow("SELECT * FROM controllers WHERE id=%i AND organisation=%i",$door['controller'],$_SESSION['accessin']['organisation']);
+		$door['controller_name']=$controller['name'];
+		$door['building']=$controller['building'];
+		$door['building_name']=DB::queryFirstField("SELECT name FROM buildings WHERE id=%i AND organisation=%i",$door['building'],$_SESSION['accessin']['organisation']);
+	};
+	$smarty->assign('doors',$doors);
+
+	$leftsidebar['doors']=true;
+	$smarty->assign('leftsidebar',$leftsidebar);
+
+	$csrftoken = NoCSRF::generate('csrf_token');
+	$smarty->assign('csrftoken',$csrftoken);
+
+	$smarty->display('doors.tpl');
+});
+
+$app->get('/doors/add/', function (Request $request, Response $response, $args) {
+	global $smarty;
+	if (!$_SESSION['accessin']['person']) {
+		header("Location: /signin");
+		die();
+	};
+
+	$organisation=DB::queryFirstRow("SELECT * FROM saasorganisations WHERE id=%i",$_SESSION['accessin']['organisation']);
+	$smarty->assign('session',$_SESSION['accessin']);
+	$smarty->assign('organisation',$organisation);
+
+	$controllers=DB::query("SELECT * FROM controllers WHERE organisation=%i",$_SESSION['accessin']['organisation']);
+	foreach ($controllers as &$controller) {
+		$controller['building_name']=DB::queryFirstField("SELECT name FROM buildings WHERE id=%i AND organisation=%i",$controller['building'],$_SESSION['accessin']['organisation']);
+	};
+	$smarty->assign('controllers',$controllers);
+
+	$leftsidebar['doors']=true;
+	$smarty->assign('leftsidebar',$leftsidebar);
+
+	$csrftoken = NoCSRF::generate('csrf_token');
+	$smarty->assign('csrftoken',$csrftoken);
+
+	$smarty->display('doors_add.tpl');
+});
+
+$app->post('/doors/add/', function (Request $request, Response $response, $args) {
+	global $smarty;
+
+	if (!$_SESSION['accessin']['person']) {
+		header("Location: /signin");
+		die();
+	};
+	//should also check here if user has permission to add a door
+
+	try {
+		NoCSRF::check( 'csrf_token', $_POST, true, 60*10, false );
+		$controller=DB::queryFirstRow("SELECT * FROM controllers WHERE id=%i AND organisation=%i",$_POST['controller'],$_SESSION['accessin']['organisation']);
+		if (!$controller) {
+			$smarty->display('invalid_controller.tpl');
+			die();
+		} else {
+			DB::insert('doors', array(
+				'name' => $_POST['name'],
+				'controller' => $_POST['controller'],
+				'organisation' => $_SESSION['accessin']['organisation']
+			));
+			header("Location: /doors");
+			die();
+		};
+	} catch ( Exception $e ) {
+		$smarty->display('csrffail.tpl');
+		die();
+	};
+});
+
+$app->post('/doors/{doorid}/delete/', function (Request $request, Response $response, $args) {
+	global $smarty;
+
+	if (!$_SESSION['accessin']['person']) {
+		header("Location: /signin");
+		die();
+	};
+	//should also check here if user has permission to delete a door
+	try {
+		NoCSRF::check( 'csrf_token', $_POST, true, 60*10, false );
+
+		$door=DB::queryFirstRow("SELECT * FROM doors WHERE id=%i AND organisation=%i",$args['doorid'],$_SESSION['accessin']['organisation']);
+		if (!$door) {
+			$smarty->display('invalid_door.tpl');
+			die();
+		} else {
+			DB::delete('doors', "id=%i AND organisation=%i", $args['doorid'],$_SESSION['accessin']['organisation']);
+			header("Location: /doors");
+			die();
+		};
+	} catch ( Exception $e ) {
+		$smarty->display('csrffail.tpl');
+		die();
+	};
+});
+
+$app->get('/doors/{doorid}/', function (Request $request, Response $response, $args) {
+	global $smarty;
+
+	if (!$_SESSION['accessin']['person']) {
+		header("Location: /signin");
+		die();
+	};
+	//should also check here if user has permission to edit a door
+	$door=DB::queryFirstRow("SELECT * FROM doors WHERE id=%i AND organisation=%i",$args['doorid'],$_SESSION['accessin']['organisation']);
+	if (!$door) {
+		$smarty->display('invalid_door.tpl');
+		die();
+	} else {
+		$smarty->assign('door',$door);
+
+		$doorlogs=DB::query("SELECT * FROM doorlogs WHERE door=%i AND organisation=%i",$door['id'],$_SESSION['accessin']['organisation']);
+		$smarty->assign('doorlogs',$doorlogs);
+
+		$controller=DB::queryFirstRow("SELECT * FROM controllers WHERE id=%i AND organisation=%i",$door['controller'],$_SESSION['accessin']['organisation']);
+		$smarty->assign('controller',$controller);
+
+		$building=DB::queryFirstRow("SELECT * FROM buildings WHERE id=%i AND organisation=%i",$controller['building'],$_SESSION['accessin']['organisation']);
+		$smarty->assign('building',$building);
+
+		$organisation=DB::queryFirstRow("SELECT * FROM saasorganisations WHERE id=%i",$_SESSION['accessin']['organisation']);
+		$smarty->assign('session',$_SESSION['accessin']);
+		$smarty->assign('organisation',$organisation);
+
+		$leftsidebar['doors']=true;
+		$smarty->assign('leftsidebar',$leftsidebar);
+
+		$csrftoken = NoCSRF::generate('csrf_token');
+		$smarty->assign('csrftoken',$csrftoken);
+
+		$smarty->display('doors_door.tpl');
+		die();
+	};
+});
+
+
+$app->get('/doors/{doorid}/unlock/', function (Request $request, Response $response, $args) {
+	global $smarty;
+
+	if (!$_SESSION['accessin']['person']) {
+		header("Location: /signin");
+		die();
+	};
+	$result=unlockdoor($args['doorid']);
+	echo json_encode($result);
+});
+
+$app->get('/doors/{doorid}/edit/', function (Request $request, Response $response, $args) {
+	global $smarty;
+
+	if (!$_SESSION['accessin']['person']) {
+		header("Location: /signin");
+		die();
+	};
+	//should also check here if user has permission to edit a door
+	$door=DB::queryFirstRow("SELECT * FROM doors WHERE id=%i AND organisation=%i",$args['doorid'],$_SESSION['accessin']['organisation']);
+	if (!$door) {
+		$smarty->display('invalid_door.tpl');
+		die();
+	} else {
+		$door['country_name']=Iso3166\Codes::country($door['country_code']);
+		$smarty->assign('door',$door);
+
+		$controllers=DB::query("SELECT * FROM controllers WHERE organisation=%i",$_SESSION['accessin']['organisation']);
+		foreach ($controllers as &$controller) {
+			$controller['building_name']=DB::queryFirstField("SELECT name FROM buildings WHERE id=%i AND organisation=%i",$controller['building'],$_SESSION['accessin']['organisation']);
+		};
+		$smarty->assign('controllers',$controllers);
+
+		$organisation=DB::queryFirstRow("SELECT * FROM saasorganisations WHERE id=%i",$_SESSION['accessin']['organisation']);
+		$smarty->assign('session',$_SESSION['accessin']);
+		$smarty->assign('organisation',$organisation);
+
+		$leftsidebar['doors']=true;
+		$smarty->assign('leftsidebar',$leftsidebar);
+
+		$csrftoken = NoCSRF::generate('csrf_token');
+		$smarty->assign('csrftoken',$csrftoken);
+
+		$smarty->display('doors_edit.tpl');
+		die();
+	};
+});
+
+$app->post('/doors/{doorid}/edit/', function (Request $request, Response $response, $args) {
+	global $smarty;
+
+	if (!$_SESSION['accessin']['person']) {
+		header("Location: /signin");
+		die();
+	};
+	//should also check here if user has permission to edit a door
+	$door=DB::queryFirstRow("SELECT * FROM doors WHERE id=%i AND organisation=%i",$args['doorid'],$_SESSION['accessin']['organisation']);
+	if (!$door) {
+		$smarty->display('invalid_door.tpl');
+		die();
+	} else {
+		$controller=DB::queryFirstRow("SELECT * FROM controllers WHERE id=%i AND organisation=%i",$_POST['controller'],$_SESSION['accessin']['organisation']);
+		if (!$controller) {
+			$smarty->display('invalid_controller.tpl');
+			die();
+		} else {
+			try {
+				NoCSRF::check( 'csrf_token', $_POST, true, 60*10, false );
+				DB::update('doors', array(
+					'name' => $_POST['name'],
+					'controller' => $_POST['controller'],
+					'relay' => $_POST['relay']
+				), "id=%i AND organisation=%i", $args['doorid'],$_SESSION['accessin']['organisation']);
+				header("Location: /doors");
+				die();
+			} catch ( Exception $e ) {
+				$smarty->display('csrffail.tpl');
+				die();
+			};
+		};
+	};
+});
 
 
 
@@ -697,6 +928,110 @@ $app->get('/mobileapi/refreshtoken/', function (Request $request, Response $resp
 						$refreshtoken = array(
 							"iss" => "accessin.okonetwork.org.uk",
 							"aud" => "AccessinCommandMobile",
+							"jti" => $refreshtokenid,
+							"iat" => $issuedat,
+							"exp" => $issuedat+1209600
+						);
+						$result['refreshtoken'] = JWT::encode($refreshtoken, $jwt_private_key, 'RS256');
+						$result['status']=true;
+					};
+				};
+			};
+		};
+	};
+
+	echo json_encode($data);
+});
+
+
+
+
+
+
+$app->get('/controllerapi/refreshtoken/', function (Request $request, Response $response) {
+	global $jwt_public_key, $jwt_private_key;
+
+	$authheader=getallheaders()['authorization'];
+	$refreshtoken=explode(' ', $authheader, 2)[1];
+
+	$decodedrefreshtoken = (array) JWT::decode($refreshtoken, $jwt_public_key, array('RS256'));
+
+	$data['status']=true;
+
+	if ($decodedrefreshtoken['iss']!="accessin.okonetwork.org.uk"||$decodedrefreshtoken['aud']!="AccessinCommandController") {
+		$data['status']=false;
+		$data['reason']="INVALID_JWT";
+	} else {
+		$token=DB::queryFirstRow("SELECT * FROM tokens WHERE id=%i",$decodedrefreshtoken['jti']);
+		if (!$token) {
+			$data['status']=false;
+			$data['reason']="INVALID_JWT";
+		} else {
+			if ($token['blocked']) {
+				$data['status']=false;
+				$data['reason']="BLOCKED_JWT";
+			} else {
+				$controller=DB::queryFirstRow("SELECT * FROM controllers WHERE id=%i",$token['connectingobjectid']);
+				if (!$mobile) {
+					$data['status']=false;
+					$data['reason']="BLOCKED_DEVICE";
+				} else {
+					if ($controller['refreshtokenid']!=$token['id']) {
+						$data['status']=false;
+						$data['reason']="INVALID_JWT";
+					} else {
+						//block old jwt
+						DB::update('tokens', array( 'blocked' => '1' ), "id=%i", $token['id']);
+						DB::update('tokens', array( 'blocked' => '1' ), "id=%i", $token['refreshfor']);
+						DB::update('controllers', array( 'refreshtokenid' => '0','accesstokenid' => '0' ), "id=%i", $controller['id']);
+
+						//issue new jwt.
+
+						$controllerid=$controller['id'];
+						$organisation=$token['organisation'];
+
+						$issuedat=time();
+						//api 2 is Controller
+						//create accesstoken
+						DB::insert('tokens', array(
+							'api' => '1',
+							'connectingobjectid' => $controllerid,
+							'refreshtoken' => false,
+							'issuedat' => $issuedat,
+							'organisation' => $organisation['id']
+						));
+						$accesstokenid=DB::insertId();
+
+						//create refreshtoken
+						DB::insert('tokens', array(
+							'api' => '1',
+							'connectingobjectid' => $controllerid,
+							'refreshtoken' => true,
+							'refreshfor' => $accesstokenid,
+							'issuedat' => $issuedat,
+							'organisation' => $organisation['id']
+						));
+						$refreshtokenid=DB::insertId();
+
+						DB::update('controllers', array(
+							refreshtokenid => $refreshtokenid,
+							accesstokenid => $accesstokenid
+						), "id=%i", $controllerid);
+
+						//expiry is in 6 hours, if this is expired both door and API access cannot occur.
+						$accesstoken = array(
+							"iss" => "accessin.okonetwork.org.uk",
+							"aud" => "AccessinCommandController",
+							"jti" => $accesstokenid,
+							"iat" => $issuedat,
+							"exp" => $issuedat+21600
+						);
+						$result['accesstoken'] = JWT::encode($accesstoken, $jwt_private_key, 'RS256');
+
+						//expires in 14 days. If this expires the mobile app will be forced to sign in again.
+						$refreshtoken = array(
+							"iss" => "accessin.okonetwork.org.uk",
+							"aud" => "AccessinCommandController",
 							"jti" => $refreshtokenid,
 							"iat" => $issuedat,
 							"exp" => $issuedat+1209600
