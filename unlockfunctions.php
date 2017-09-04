@@ -10,12 +10,12 @@ require_once 'nocsrf.php';
 function unlockdoor($doorid) {
 		$door=DB::queryFirstRow("SELECT * FROM doors WHERE id=%i",$doorid);
 		$doorargs['door']=$door;
-		$data['procedure']="controller_".$door['controller']."_unlock";
+		$data['procedure']="controller.".$door['controller'].".unlock";
 		$data['args']=$doorargs;
 		$data=json_encode($data);
 
         	$headers = array('Content-Type' => 'application/json');
-        	$httpget = Requests::post('http://127.0.0.1:3003/call', $headers, $data);
+        	$httpget = Requests::post('http://127.0.0.1:3004/call', $headers, $data);
 
 		$httpget = json_decode($httpget->body,true)['args'][0];
 		return $httpget;

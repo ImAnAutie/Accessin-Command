@@ -1,7 +1,7 @@
 {config_load file='smarty.conf'}
 
 	{include file='head.tpl'}
-	<title>{#appnamefull#} | Edit {$door.name}</title>
+	<title>{#appnamefull#} | Edit {$reader.name}</title>
 
         <!-- css for select2 fancy dropdown box -->
         <link href="/css/select2.min.css" rel="stylesheet" />
@@ -16,14 +16,14 @@
   <div class="content-wrapper">
     <section class="content-header">
       <h1>
-        Edit door
-        <small>Make changes to the door information</small>
+        Edit reader
+        <small>Make changes to the reader information</small>
       </h1>
       <ol class="breadcrumb">
         <li><a href="/"><i class="fa fa-dashboard"></i> Dashboard</a></li>
-        <li><a href="/doors"><i class="fa fa-server"></i> doors</a></li>
-        <li><a href="/doors/{$door.id}"><i class="fa fa-server"></i> {$door.name}</a></li>
-        <li><a href="/doors/{$door.id}/edit"><i class="fa fa-edit"></i> Edit</a></li>
+        <li><a href="/readers"><i class="fa fa-server"></i> readers</a></li>
+        <li><a href="/readers/{$reader.id}"><i class="fa fa-tablet"></i> {$reader.name}</a></li>
+        <li><a href="/readers/{$reader.id}/edit"><i class="fa fa-edit"></i> Edit</a></li>
       </ol>
     </section>
 
@@ -31,7 +31,7 @@
     <section class="content container-fluid">
       <div class="box">
         <div class="box-header with-border">
-          <h3 class="box-title">Edit door</h3>
+          <h3 class="box-title">Edit reader</h3>
         </div>
         <div class="box-body">
 
@@ -43,28 +43,20 @@
 				<div class="form-group">
 				  <label class="col-md-4 control-label" for="name">Name</label>  
 				  <div class="col-md-4">
-				  <input id="name" name="name" type="text" placeholder="" value="{$door.name}" class="form-control input-md" required="">
-				  </div>
-				</div>
-
-				<!-- Number input-->
-				<div class="form-group">
-				  <label class="col-md-4 control-label" for="relay">relay</label>  
-				  <div class="col-md-4">
-				  <input id="relay" name="relay" type="number" placeholder="" value="{$door.relay}" class="form-control input-md" required="" min="1">
+				  <input id="name" name="name" type="text" placeholder="" value="{$reader.name}" class="form-control input-md" required="">
 				  </div>
 				</div>
 
 				<!-- Select input-->
                                 <div class="form-group">
-                                  <label class="col-md-4 control-label" for="controller">Controller</label>
+                                  <label class="col-md-4 control-label" for="door">Door</label>
                                   <div class="col-md-4">
-                                   <select id="controller" name="controller" class="form-control input-md">
+                                   <select id="door" name="door" class="form-control input-md">
 
-                                        {foreach from=$controllers item=controller}
-                                                <option value="{$controller.id}">{$controller.name}</option>
+                                        {foreach from=$doors item=door}
+                                                <option value="{$door.id}">{$door.name} ({$door.building_name})</option>
                                         {foreachelse}
-                                                <option value="">No controllers are configured for this organisation</option>
+                                                <option value="">No doors are configured for this organisation</option>
                                         {/foreach}
 
 
@@ -114,7 +106,7 @@
         $('select').select2({
                 "language": {
                         "noResults": function(){
-                                return "No controllers found";
+                                return "No doors found";
                         }
                 }
         });
