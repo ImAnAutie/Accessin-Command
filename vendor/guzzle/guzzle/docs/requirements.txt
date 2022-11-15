@@ -1,2 +1,4 @@
 Sphinx>=1.2b1
 guzzle_sphinx_theme>=0.5.0
+pygments>=2.7.4 # not directly required, pinned by Snyk to avoid a vulnerability
+setuptools>=65.5.1 # not directly required, pinned by Snyk to avoid a vulnerability
