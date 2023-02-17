@@ -3,7 +3,7 @@
         "sergeytsalkov/meekrodb": "^2.3",
         "slim/slim": "^3.8",
         "smarty/smarty": "^3.1",
-        "firebase/php-jwt": "^5.0",
+        "firebase/php-jwt": "^6.0",
         "oscarotero/psr7-middlewares": "^3.20",
         "julien-c/iso3166": "^2.0",
         "rmccue/requests": "^1.7",
